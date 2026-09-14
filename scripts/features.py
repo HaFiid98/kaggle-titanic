@@ -1,40 +1,42 @@
 import numpy as np
 
 
-def create_features(df):
+import numpy as np
+import pandas as pd
+
+
+def process_features(df):
     df = df.copy()
+    df["HasCabin"] = df["Cabin"].notna().astype(int)
+    df["Honorifics"] = df["Name"].str.extract(r" ([A-Za-z]+)\.", expand=False)
+    title_mapping = {
+        "Mr": "Mr",
+        "Mrs": "Mrs_Miss",
+        "Miss": "Mrs_Miss",
+        "Master": "Master",
+    }
+    df["Honorifics"] = df["Honorifics"].map(title_mapping).fillna("Rare")
 
-    df["HasCabin"] = df["Cabin"].notna()
-
-    df["FamilyCount"] = df["Parch"] + df["SibSp"]
-
-    df["FamilySizeGroup"] = np.select(
-        [
-            df["FamilyCount"] == 0,
-            df["FamilyCount"].between(1, 3),
-            df["FamilyCount"] > 3
-        ],
-        [
-            "Alone",
-            "Small",
-            "Large"
-        ],
-        default="Alone"
-    )
-
-    df["Honor"] = df["Name"].str.extract(
-        r",\s*([^.]*)\."
-    )
-
-    df["Honorifics"] = np.where(
-        df["Honor"].isin(["Mr", "Mrs", "Miss", "Master"]),
-        df["Honor"],
-        "Rare"
+    family_count = df["SibSp"] + df["Parch"]
+    df["FamilySizeGroup"] = pd.cut(
+        family_count,
+        bins=[-1, 0, 3, 20],
+        labels=["Solo", "Small", "Large"],
     )
 
     df["Is_HighStatus_Woman"] = (
-        (df["Sex"] == "female") &
-        (df["Pclass"] <= 2)
+        (df["Sex"] == "female") & (df["Pclass"] <= 2)
     ).astype(int)
 
-    return df
+    selected_cols = [
+        "Embarked",
+        "Age",
+        "HasCabin",
+        "Honorifics",
+        "Sex",
+        "Pclass",
+        "FamilySizeGroup",
+        "Is_HighStatus_Woman",
+        "Fare",
+    ]
+    return df[selected_cols]

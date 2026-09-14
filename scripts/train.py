@@ -5,18 +5,23 @@ from sklearn.model_selection import StratifiedKFold, cross_val_score
 from sklearn.pipeline import Pipeline
 from pathlib import Path
 
-from features import create_features
+from features import process_features
 from preprocessing import preprocessor
 
 
-train = pd.read_csv("../data/train.csv")
+# train = pd.read_csv("../data/train.csv")
 BASE_DIR = Path(__file__).resolve().parent if "__file__" in locals() else Path().cwd()
 
 TRAIN_PATH = BASE_DIR.parent / "data" / "train.csv"
 TEST_PATH = BASE_DIR.parent / "data" / "test.csv"
-TARGET_PATH = BASE_DIR.parent / "data" / "gender_submission"
-train = create_features(TARGET_PATH)
-test = create_features(TEST_PATH)
+# TARGET_PATH = BASE_DIR.parent / "data" / "gender_submission"
+data = pd.read_csv(TRAIN_PATH)
+test_data = pd.read_csv(TEST_PATH)
+y = data["Survived"]
+
+train = process_features(data)
+test = process_features(test_data)
+
 X = train[
     [
         "Embarked",
@@ -30,8 +35,19 @@ X = train[
         "Fare"
     ]
 ]
-
-y = train["Survived"]
+X_test = test[
+    [
+        "Embarked",
+        "Age",
+        "HasCabin",
+        "Honorifics",
+        "Sex",
+        "Pclass",
+        "FamilySizeGroup",
+        "Is_HighStatus_Woman",
+        "Fare"
+    ]
+]
 
 
 model = Pipeline([
@@ -39,7 +55,13 @@ model = Pipeline([
     ("classifier", LogisticRegression(max_iter=500))
 ])
 
+model.fit(X=X , y=y)
+y_predict = model.predict(X_test)
 
+submission = pd.DataFrame({"PassengerId" : test_data["PassengerId"] , "Survived" :y_predict})
+
+submission.to_csv(BASE_DIR.parent / "data" / "submission.csv" , index=False)
+print(y_predict)
 skf = StratifiedKFold(
     n_splits=5,
     shuffle=True,
@@ -54,6 +76,8 @@ scores = cross_val_score(
     cv=skf,
     scoring="accuracy"
 )
+
+
 
 print("Scores:", scores)
 print("Mean:", scores.mean())
