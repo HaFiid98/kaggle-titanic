@@ -4,7 +4,8 @@ from sklearn.impute import SimpleImputer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 
 
-num_cols = ["Age", "Fare"]
+num_cols = ["Fare" , "Age"]
+
 
 cat_cols = [
     "Embarked",
@@ -14,6 +15,7 @@ cat_cols = [
     "Pclass",
     "FamilySizeGroup",
     "Is_HighStatus_Woman",
+    "women_children_count"
 ]
 
 
