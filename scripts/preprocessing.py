@@ -8,14 +8,17 @@ num_cols = ["Fare" , "Age"]
 
 
 cat_cols = [
-    "Embarked",
-    "HasCabin",
-    "Honorifics",
-    "Sex",
-    "Pclass",
-    "FamilySizeGroup",
-    "Is_HighStatus_Woman",
-    "women_children_count"
+
+            "Embarked",
+            "HasCabin",
+            "Honorifics",
+            "Sex",
+            "Pclass",
+            "FamilySizeGroup",
+            "children_count",
+            "Is_HighStatus_Woman", 
+            "Age_Pclass"
+            # "women_children_count"
 ]
 
 

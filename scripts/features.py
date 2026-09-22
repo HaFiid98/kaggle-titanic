@@ -5,51 +5,61 @@ import numpy as np
 import pandas as pd
 
 
-def process_features(df , age_medians , global_med):
-    df = df.copy()
-    df["HasCabin"] = df["Cabin"].notna().astype(int)
-    df["Honorifics"] = df["Name"].str.extract(r" ([A-Za-z]+)\.", expand=False)
+def process_features(df , df_test , age_medians , global_med):
+    combined = pd.concat([df.drop(columns = ["Survived"] , errors="ignore") , df_test] ,axis=0).reset_index(drop=True)
+    combined["HasCabin"] = combined["Cabin"].notna().astype(int)
+    combined["Honorifics"] = combined["Name"].str.extract(r" ([A-Za-z]+)\.", expand=False)
     title_mapping = {
         "Mr": "Mr",
-        "Mrs": "Mrs_Miss",
         "Miss": "Mrs_Miss",
+        "Mrs": "Mrs_Miss",
         "Master": "Master",
     }
-    df["Honorifics"] = df["Honorifics"].map(title_mapping).fillna("Rare")
+    combined["Honorifics_Median"] = combined["Honorifics"].map(age_medians)
+    combined["Age"] = combined["Age"].fillna(combined["Honorifics_Median"])
+    combined["Age"] = combined["Age"].fillna(global_med)
+    combined["Honorifics"] = combined["Honorifics"].map(title_mapping).fillna("Rare")
 
-    family_count = df["SibSp"] + df["Parch"]
-    df["FamilySizeGroup"] = pd.cut(
+    family_count = combined["SibSp"] + combined["Parch"]
+    combined["FamilySizeGroup"] = pd.cut(
         family_count,
         bins=[-1, 0, 3, 20],
         labels=["Solo", "Small", "Large"],
     )
 
-    df["Is_HighStatus_Woman"] = (
-        (df["Sex"] == "female") & (df["Pclass"] <= 2)
+    combined["Is_HighStatus_Woman"] = (
+        ((combined["Sex"] == "female") & (combined["Pclass"] <= 2)) 
     ).astype(int)
 
 
-    df["women_children_count"] = (
-    (df["Sex"].eq("female") | df["Age"].lt(18))
-    .groupby(df["Ticket"])
+    combined["children_count"] = (
+    (combined["Age"].lt(18))
+    .groupby(combined["Ticket"])
     .transform("sum")
 )
+
+
+    combined["Age_Pclass"] = combined["Pclass"] * combined["Age"] 
     selected_cols = [
             "Embarked",
             "Age",
+            "Age_Pclass" , 
             "HasCabin",
             "Honorifics",
             "Sex",
             "Pclass",
             "FamilySizeGroup",
-            "Is_HighStatus_Woman",
             "Fare",
-            "women_children_count"
+            "children_count",
+            "Is_HighStatus_Woman",
+            
+            # "women_children_count"
         ]
         
         
     # print(df)
-    df["Honorifics_Median"] = df["Honorifics"].map(age_medians)
-    df["Age"] = df["Age"].fillna(df["Honorifics_Median"])
-    df["Age"] = df["Age"].fillna(global_med)
-    return df[selected_cols]
+    train_len = len(df)
+    X_train_full = combined.iloc[:train_len].copy()
+    X_test_full = combined.iloc[train_len:].copy()
+    return X_train_full, X_test_full
+
